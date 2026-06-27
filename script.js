@@ -17,8 +17,6 @@
    6. Enable Storage
    7. Deploy with: firebase deploy
    ─────────────────────────────────────────────────────────── */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyD9QTzXdIch7njqV3jjWFe4UMhN_POr57w",
   authDomain: "resum-1da6e.firebaseapp.com",
@@ -27,8 +25,6 @@ const firebaseConfig = {
   messagingSenderId: "579784313367",
   appId: "1:579784313367:web:cb203cb34145a8431cea52"
 };
-
-const app = initializeApp(firebaseConfig);
 
 /* ── 2. APP STATE ──────────────────────────────────────────
    Central state object. All resume data lives here.
@@ -61,7 +57,8 @@ let db, auth, storage;
 
 function initFirebase() {
   try {
-    firebase.initializeApp(FIREBASE_CONFIG);
+    // Use the global firebase object (loaded via compat CDN)
+    firebase.initializeApp(firebaseConfig);
     auth    = firebase.auth();
     db      = firebase.firestore();
     storage = firebase.storage();
@@ -127,7 +124,7 @@ async function handleSignUp() {
   if (password.length < 6) return showToast('Password must be at least 6 characters.', 'error');
 
   if (!AppState.isFirebaseReady) {
-    return showToast('Firebase not configured. Check FIREBASE_CONFIG.', 'error');
+    return showToast('Firebase not configured. Check firebaseConfig.', 'error');
   }
 
   try {
@@ -167,7 +164,7 @@ async function handleLogin() {
   if (!password) return showToast('Please enter your password.', 'error');
 
   if (!AppState.isFirebaseReady) {
-    return showToast('Firebase not configured. Check FIREBASE_CONFIG.', 'error');
+    return showToast('Firebase not configured.', 'error');
   }
 
   try {
@@ -534,8 +531,7 @@ function buildModernTemplate(d) {
       ${d.hobbies ? `<div class="sidebar-section-title">Interests</div><div class="sidebar-skill">${esc(d.hobbies)}</div>` : ''}
     </div>`;
 
-  const mainSections = {
-    objective:      () => d.objective ? `<div class="section-title">Career Objective</div><div class="text-block">${esc(d.objective)}</div>` : '',
+  const mainSections = {lock">${esc(d.objective)}</div>` : '',
     summary:        () => d.summary ? `<div class="section-title">Professional Summary</div><div class="text-block">${esc(d.summary)}</div>` : '',
     experience:     () => d.experience.length ? `<div class="section-title">Experience</div>${d.experience.map(e=>`<div class="entry-block"><div class="entry-header"><div><div class="entry-title">${esc(e.title||e.name||'')}</div><div class="entry-subtitle">${esc(e.company||e.subtitle||'')}</div></div><div class="entry-dates">${esc(e.dates||'')}</div></div>${e.description?`<div class="entry-desc">${esc(e.description)}</div>`:''}</div>`).join('')}` : '',
     education:      () => d.education.length ? `<div class="section-title">Education</div>${d.education.map(e=>`<div class="entry-block"><div class="entry-header"><div><div class="entry-title">${esc(e.name||e.title||'')}</div><div class="entry-subtitle">${esc(e.institution||'')}</div></div><div class="entry-dates">${esc(e.year||e.dates||'')}</div></div>${e.description?`<div class="entry-desc">${esc(e.description)}</div>`:''}</div>`).join('')}` : '',
