@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ResumeForge — AI Resume Builder</title>
+  <meta name="description" content="Build ATS-friendly resumes in minutes. Professional templates, live preview, and AI-powered suggestions." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- html2pdf for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <!-- Firebase SDK (v9 compat mode — works via CDN, no build tools needed) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+  <!-- Sortable.js for drag-and-drop section ordering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       TOAST NOTIFICATION SYSTEM
+  ============================================================ -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- ============================================================
+       LOADING OVERLAY
+  ============================================================ -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-spinner">
+      <div class="spinner-ring"></div>
+      <p>Loading ResumeForge…</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       NAVIGATION BAR
+  ============================================================ -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo" onclick="showSection('landing')">
+        <span class="logo-icon"><i class="fas fa-bolt"></i></span>
+        <span class="logo-text">ResumeForge</span>
+      </a>
+
+      <div class="nav-links" id="nav-links">
+        <!-- Shown when logged out -->
+        <div class="nav-auth-out" id="nav-auth-out">
+          <button class="btn btn-ghost" onclick="showModal('login-modal')">Log In</button>
+          <button class="btn btn-primary" onclick="showModal('signup-modal')">Get Started</button>
+        </div>
+        <!-- Shown when logged in -->
+        <div class="nav-auth-in hidden" id="nav-auth-in">
+          <button class="btn btn-ghost" onclick="showSection('builder')"><i class="fas fa-file-pen"></i> Builder</button>
+          <div class="nav-user-menu" id="nav-user-menu">
+            <div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu()">
+              <img id="nav-avatar-img" src="" alt="Profile" class="hidden" />
+              <span id="nav-avatar-initials"></span>
+            </div>
+            <div class="user-dropdown" id="user-dropdown">
+              <div class="dropdown-header">
+                <span id="dropdown-name"></span>
+                <span id="dropdown-email" class="dropdown-email"></span>
+              </div>
+              <hr class="dropdown-divider" />
+              <button class="dropdown-item" onclick="showSection('builder'); closeUserMenu()"><i class="fas fa-file-pen"></i> My Resume</button>
+              <button class="dropdown-item" onclick="toggleTheme(); closeUserMenu()"><i class="fas fa-circle-half-stroke"></i> Toggle Theme</button>
+              <hr class="dropdown-divider" />
+              <button class="dropdown-item danger" onclick="handleLogout()"><i class="fas fa-right-from-bracket"></i> Log Out</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="nav-theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle dark/light mode">
+        <i class="fas fa-moon" id="theme-icon"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       LANDING PAGE
+  ============================================================ -->
+  <section id="landing-section" class="section-page">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+      </div>
+      <div class="hero-content">
+        <div class="hero-badge"><i class="fas fa-sparkles"></i> ATS-Friendly · Free to Build</div>
+        <h1 class="hero-title">
+          Your Dream Job<br/>
+          <span class="gradient-text">Starts Here.</span>
+        </h1>
+        <p class="hero-subtitle">Build a professional, ATS-optimized resume in minutes. Live preview, multiple templates, and one-click PDF export — all from your phone.</p>
+        <div class="hero-cta">
+          <button class="btn btn-primary btn-xl" onclick="showModal('signup-modal')">
+            <i class="fas fa-rocket"></i> Build My Resume — Free
+          </button>
+          <button class="btn btn-outline btn-xl" onclick="scrollToFeatures()">
+            See Features <i class="fas fa-arrow-down"></i>
+          </button>
+        </div>
+        <div class="hero-stats">
+          <div class="stat"><span class="stat-num">10+</span><span class="stat-label">Templates</span></div>
+          <div class="stat-divider"></div>
+          <div class="stat"><span class="stat-num">ATS</span><span class="stat-label">Optimized</span></div>
+          <div class="stat-divider"></div>
+          <div class="stat"><span class="stat-num">PDF</span><span class="stat-label">Export</span></div>
+        </div>
+      </div>
+
+      <!-- Hero Resume Preview Card -->
+      <div class="hero-preview">
+        <div class="preview-card">
+          <div class="preview-header">
+            <div class="preview-dot red"></div>
+            <div class="preview-dot yellow"></div>
+            <div class="preview-dot green"></div>
+            <span class="preview-label">Live Preview</span>
+          </div>
+          <div class="preview-mock">
+            <div class="mock-name"></div>
+            <div class="mock-title"></div>
+            <div class="mock-divider"></div>
+            <div class="mock-section-title"></div>
+            <div class="mock-line w-full"></div>
+            <div class="mock-line w-3/4"></div>
+            <div class="mock-line w-5/6"></div>
+            <div class="mock-section-title mt"></div>
+            <div class="mock-line w-full"></div>
+            <div class="mock-line w-2/3"></div>
+            <div class="mock-skills">
+              <div class="mock-skill"></div>
+              <div class="mock-skill"></div>
+              <div class="mock-skill"></div>
+              <div class="mock-skill"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features Section -->
+    <div id="features-section" class="features">
+      <div class="section-header">
+        <h2>Everything You Need to Land the Job</h2>
+        <p>A complete resume building toolkit, designed for modern job seekers.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+          <h3>Live Preview</h3>
+          <p>See your resume update in real-time as you type. No refreshing needed.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-robot"></i></div>
+          <h3>ATS-Optimized</h3>
+          <p>All templates pass Applicant Tracking Systems with clean, machine-readable formatting.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-palette"></i></div>
+          <h3>Multiple Templates</h3>
+          <p>Switch between professionally designed templates with one click.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-file-pdf"></i></div>
+          <h3>PDF Export</h3>
+          <p>Download your resume as a pixel-perfect PDF, ready to send to recruiters.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-cloud"></i></div>
+          <h3>Cloud Save</h3>
+          <p>Your resume is auto-saved to the cloud. Access it from any device, anytime.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-mobile-screen"></i></div>
+          <h3>Mobile First</h3>
+          <p>Built to work perfectly on phones. No laptop required.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Templates Preview -->
+    <div class="templates-showcase">
+      <div class="section-header">
+        <h2>Professional Templates</h2>
+        <p>ATS-friendly designs trusted by hiring managers worldwide.</p>
+      </div>
+      <div class="template-cards">
+        <div class="template-preview-card active">
+          <div class="tpl-thumb tpl-classic">
+            <div class="tpl-header-bar"></div>
+            <div class="tpl-lines">
+              <div class="tpl-line l-full"></div>
+              <div class="tpl-line l-half"></div>
+              <div class="tpl-line l-3q"></div>
+            </div>
+          </div>
+          <span>Classic</span>
+        </div>
+        <div class="template-preview-card">
+          <div class="tpl-thumb tpl-modern">
+            <div class="tpl-sidebar"></div>
+            <div class="tpl-lines">
+              <div class="tpl-line l-full"></div>
+              <div class="tpl-line l-half"></div>
+              <div class="tpl-line l-3q"></div>
+            </div>
+          </div>
+          <span>Modern</span>
+        </div>
+        <div class="template-preview-card">
+          <div class="tpl-thumb tpl-minimal">
+            <div class="tpl-accent-line"></div>
+            <div class="tpl-lines">
+              <div class="tpl-line l-full"></div>
+              <div class="tpl-line l-half"></div>
+              <div class="tpl-line l-3q"></div>
+            </div>
+          </div>
+          <span>Minimal</span>
+        </div>
+        <div class="template-preview-card">
+          <div class="tpl-thumb tpl-executive">
+            <div class="tpl-exec-top"></div>
+            <div class="tpl-lines">
+              <div class="tpl-line l-full"></div>
+              <div class="tpl-line l-half"></div>
+            </div>
+          </div>
+          <span>Executive</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA Banner -->
+    <div class="cta-banner">
+      <div class="cta-banner-inner">
+        <h2>Ready to Build Your Resume?</h2>
+        <p>Join thousands of job seekers who landed their dream jobs with ResumeForge.</p>
+        <button class="btn btn-primary btn-xl" onclick="showModal('signup-modal')">
+          <i class="fas fa-rocket"></i> Start Building — It's Free
+        </button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-logo">
+          <span class="logo-icon"><i class="fas fa-bolt"></i></span>
+          <span>ResumeForge</span>
+        </div>
+        <p class="footer-copy">&copy; 2025 ResumeForge. Built with ❤️ for job seekers everywhere.</p>
+      </div>
+    </footer>
+
+  </section>
+
+  <!-- ============================================================
+       BUILDER PAGE
+  ============================================================ -->
+  <section id="builder-section" class="section-page hidden">
+
+    <!-- Builder Top Bar -->
+    <div class="builder-topbar">
+      <button class="btn btn-ghost btn-sm" onclick="showSection('landing')">
+        <i class="fas fa-arrow-left"></i> Home
+      </button>
+      <div class="builder-topbar-center">
+        <span class="save-status" id="save-status"><i class="fas fa-circle-check"></i> Saved</span>
+      </div>
+      <div class="builder-topbar-actions">
+        <button class="btn btn-ghost btn-sm" onclick="validateResume()" title="Validate ATS"><i class="fas fa-check-circle"></i> Validate</button>
+        <button class="btn btn-ghost btn-sm mobile-hide" onclick="printResume()" title="Print"><i class="fas fa-print"></i></button>
+        <button class="btn btn-primary btn-sm" onclick="downloadPDF()"><i class="fas fa-download"></i> PDF</button>
+      </div>
+    </div>
+
+    <!-- Builder Layout -->
+    <div class="builder-layout">
+
+      <!-- LEFT: Form Panel -->
+      <div class="builder-form-panel" id="builder-form-panel">
+
+        <!-- Template Selector -->
+        <div class="form-section template-section">
+          <h3 class="form-section-title"><i class="fas fa-palette"></i> Template</h3>
+          <div class="template-selector" id="template-selector">
+            <button class="tpl-btn active" data-template="classic" onclick="switchTemplate('classic', this)">Classic</button>
+            <button class="tpl-btn" data-template="modern" onclick="switchTemplate('modern', this)">Modern</button>
+            <button class="tpl-btn" data-template="minimal" onclick="switchTemplate('minimal', this)">Minimal</button>
+            <button class="tpl-btn" data-template="executive" onclick="switchTemplate('executive', this)">Executive</button>
+            <button class="tpl-btn" data-template="creative" onclick="switchTemplate('creative', this)">Creative</button>
+          </div>
+        </div>
+
+        <!-- Sections order panel -->
+        <div class="form-section">
+          <div class="section-order-header" onclick="toggleAccordion('section-order-body')">
+            <h3 class="form-section-title"><i class="fas fa-grip-vertical"></i> Section Order</h3>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+          </div>
+          <div id="section-order-body" class="accordion-body">
+            <p class="hint-text">Drag sections to reorder them on your resume.</p>
+            <ul id="sections-sortable" class="sortable-list">
+              <li data-section="objective" class="sortable-item"><i class="fas fa-grip-dots-vertical"></i> Career Objective</li>
+              <li data-section="summary" class="sortable-item"><i class="fas fa-grip-dots-vertical"></i> Professional Summary</li>
+              <li data-section="experience" class="sortable-item"><i class="fas fa-grip-dots-vertical"></i> Experience</li>
+              <li data-section="education" class="sortable-item"><i class="fas fa-grip-dots-vertical"></i> Education</li>
+              <li data-section="skills" class="sortable-item"><i class="fas fa-grip-dots-vertical"></i> Skills</li>
+              <li data-section="projects" class="sortable-item"><i class="fas fa-grip-dots-vertical"></i> Projects</li>
+              <li data-section="certifications" class="sortable-item"><i class="fas fa-grip-dots-vertical"></i> Certifications</li>
+              <li data-section="achievements" class="sortable-item"><i class="fas fa-grip-dots-vertical"></i> Achievements</li>
+              <li data-section="languages" class="sortable-item"><i class="fas fa-grip-dots-vertical"></i> Languages</li>
+              <li data-section="hobbies" class="sortable-item"><i class="fas fa-grip-dots-vertical"></i> Hobbies</li>
+              <li data-section="references" class="sortable-item"><i class="fas fa-grip-dots-vertical"></i> References</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Personal Information -->
+        <div class="form-section" id="form-personal">
+          <div class="section-order-header" onclick="toggleAccordion('personal-body')">
+            <h3 class="form-section-title"><i class="fas fa-user"></i> Personal Information</h3>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+          </div>
+          <div id="personal-body" class="accordion-body open">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="firstName">First Name <span class="required">*</span></label>
+                <input type="text" id="firstName" placeholder="John" oninput="updatePreview()" />
+              </div>
+              <div class="form-group">
+                <label for="lastName">Last Name <span class="required">*</span></label>
+                <input type="text" id="lastName" placeholder="Doe" oninput="updatePreview()" />
+              </div>
+              <div class="form-group full">
+                <label for="jobTitle">Job Title / Headline</label>
+                <input type="text" id="jobTitle" placeholder="Senior Software Engineer" oninput="updatePreview()" />
+              </div>
+              <div class="form-group">
+                <label for="email">Email <span class="required">*</span></label>
+                <input type="email" id="email" placeholder="john@example.com" oninput="updatePreview()" />
+              </div>
+              <div class="form-group">
+                <label for="phone">Phone</label>
+                <input type="tel" id="phone" placeholder="+1 (555) 000-0000" oninput="updatePreview()" />
+              </div>
+              <div class="form-group">
+                <label for="location">Location</label>
+                <input type="text" id="location" placeholder="New York, NY" oninput="updatePreview()" />
+              </div>
+              <div class="form-group">
+                <label for="website">Website / Portfolio</label>
+                <input type="url" id="website" placeholder="https://yoursite.com" oninput="updatePreview()" />
+              </div>
+              <div class="form-group">
+                <label for="linkedin">LinkedIn</label>
+                <input type="url" id="linkedin" placeholder="linkedin.com/in/johndoe" oninput="updatePreview()" />
+              </div>
+              <div class="form-group">
+                <label for="github">GitHub</label>
+                <input type="url" id="github" placeholder="github.com/johndoe" oninput="updatePreview()" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Career Objective -->
+        <div class="form-section" id="form-objective">
+          <div class="section-order-header" onclick="toggleAccordion('objective-body')">
+            <h3 class="form-section-title"><i class="fas fa-bullseye"></i> Career Objective</h3>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+          </div>
+          <div id="objective-body" class="accordion-body">
+            <div class="form-group full">
+              <textarea id="objective" rows="3" placeholder="A results-driven software engineer with 5+ years of experience…" oninput="updatePreview()"></textarea>
+              <span class="char-counter" id="objective-counter">0 / 300</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Professional Summary -->
+        <div class="form-section" id="form-summary">
+          <div class="section-order-header" onclick="toggleAccordion('summary-body')">
+            <h3 class="form-section-title"><i class="fas fa-align-left"></i> Professional Summary</h3>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+          </div>
+          <div id="summary-body" class="accordion-body">
+            <div class="form-group full">
+              <textarea id="summary" rows="4" placeholder="Experienced professional with a proven track record of delivering results…" oninput="updatePreview()"></textarea>
+              <span class="char-counter" id="summary-counter">0 / 500</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Experience -->
+        <div class="form-section" id="form-experience">
+          <div class="section-order-header" onclick="toggleAccordion('experience-body')">
+            <h3 class="form-section-title"><i class="fas fa-briefcase"></i> Work Experience</h3>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+          </div>
+          <div id="experience-body" class="accordion-body">
+            <div id="experience-list"></div>
+            <button class="btn btn-add" onclick="addEntry('experience')">
+              <i class="fas fa-plus"></i> Add Experience
+            </button>
+          </div>
+        </div>
+
+        <!-- Education -->
+        <div class="form-section" id="form-education">
+          <div class="section-order-header" onclick="toggleAccordion('education-body')">
+            <h3 class="form-section-title"><i class="fas fa-graduation-cap"></i> Education</h3>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+          </div>
+          <div id="education-body" class="accordion-body">
+            <div id="education-list"></div>
+            <button class="btn btn-add" onclick="addEntry('education')">
+              <i class="fas fa-plus"></i> Add Education
+            </button>
+          </div>
+        </div>
+
+        <!-- Skills -->
+        <div class="form-section" id="form-skills">
+          <div class="section-order-header" onclick="toggleAccordion('skills-body')">
+            <h3 class="form-section-title"><i class="fas fa-code"></i> Skills</h3>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+          </div>
+          <div id="skills-body" class="accordion-body">
+            <div class="form-group full">
+              <label>Skills <span class="hint">(separate with commas)</span></label>
+              <textarea id="skills" rows="3" placeholder="JavaScript, React, Node.js, Python, SQL, Git…" oninput="updatePreview()"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Projects -->
+        <div class="form-section" id="form-projects">
+          <div class="section-order-header" onclick="toggleAccordion('projects-body')">
+            <h3 class="form-section-title"><i class="fas fa-diagram-project"></i> Projects</h3>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+          </div>
+          <div id="projects-body" class="accordion-body">
+            <div id="projects-list"></div>
+            <button class="btn btn-add" onclick="addEntry('projects')">
+              <i class="fas fa-plus"></i> Add Project
+            </button>
+          </div>
+        </div>
+
+        <!-- Certifications -->
+        <div class="form-section" id="form-certifications">
+          <div class="section-order-header" onclick="toggleAccordion('certifications-body')">
+            <h3 class="form-section-title"><i class="fas fa-certificate"></i> Certifications</h3>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+          </div>
+          <div id="certifications-body" class="accordion-body">
+            <div id="certifications-list"></div>
+            <button class="btn btn-add" onclick="addEntry('certifications')">
+              <i class="fas fa-plus"></i> Add Certification
+            </button>
+          </div>
+        </div>
+
+        <!-- Achievements -->
+        <div class="form-section" id="form-achievements">
+          <div class="section-order-header" onclick="toggleAccordion('achievements-body')">
+            <h3 class="form-section-title"><i class="fas fa-trophy"></i> Achievements</h3>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+          </div>
+          <div id="achievements-body" class="accordion-body">
+            <div class="form-group full">
+              <textarea id="achievements" rows="4" placeholder="• Led a team of 10 engineers, delivering project 2 weeks ahead of schedule&#10;• Reduced system latency by 40% through algorithmic improvements" oninput="updatePreview()"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Languages -->
+        <div class="form-section" id="form-languages">
+          <div class="section-order-header" onclick="toggleAccordion('languages-body')">
+            <h3 class="form-section-title"><i class="fas fa-globe"></i> Languages</h3>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+          </div>
+          <div id="languages-body" class="accordion-body">
+            <div id="languages-list"></div>
+            <button class="btn btn-add" onclick="addEntry('languages')">
+              <i class="fas fa-plus"></i> Add Language
+            </button>
+          </div>
+        </div>
+
+        <!-- Hobbies -->
+        <div class="form-section" id="form-hobbies">
+          <div class="section-order-header" onclick="toggleAccordion('hobbies-body')">
+            <h3 class="form-section-title"><i class="fas fa-heart"></i> Hobbies & Interests</h3>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+          </div>
+          <div id="hobbies-body" class="accordion-body">
+            <div class="form-group full">
+              <textarea id="hobbies" rows="2" placeholder="Photography, Open Source Development, Chess, Reading…" oninput="updatePreview()"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- References -->
+        <div class="form-section" id="form-references">
+          <div class="section-order-header" onclick="toggleAccordion('references-body')">
+            <h3 class="form-section-title"><i class="fas fa-user-group"></i> References</h3>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+          </div>
+          <div id="references-body" class="accordion-body">
+            <div class="form-group full">
+              <label>
+                <input type="checkbox" id="references-on-request" onchange="updatePreview()" />
+                Show "References available upon request"
+              </label>
+            </div>
+            <div id="references-list"></div>
+            <button class="btn btn-add" onclick="addEntry('references')">
+              <i class="fas fa-plus"></i> Add Reference
+            </button>
+          </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="form-section danger-zone">
+          <button class="btn btn-danger-outline btn-full" onclick="confirmClearResume()">
+            <i class="fas fa-trash"></i> Clear All Data
+          </button>
+        </div>
+
+      </div><!-- /builder-form-panel -->
+
+      <!-- RIGHT: Preview Panel -->
+      <div class="builder-preview-panel" id="builder-preview-panel">
+        <div class="preview-panel-header">
+          <span><i class="fas fa-eye"></i> Live Preview</span>
+          <button class="btn btn-ghost btn-sm" onclick="togglePreviewFullscreen()" id="preview-expand-btn" title="Expand preview">
+            <i class="fas fa-expand"></i>
+          </button>
+        </div>
+        <div class="preview-scale-wrapper">
+          <div class="resume-preview" id="resume-preview">
+            <!-- Resume HTML is injected here by script.js -->
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /builder-layout -->
+
+    <!-- Mobile: bottom tab bar for switching form/preview -->
+    <div class="mobile-tab-bar">
+      <button class="tab-btn active" id="tab-form" onclick="switchBuilderTab('form')">
+        <i class="fas fa-edit"></i> Edit
+      </button>
+      <button class="tab-btn" id="tab-preview" onclick="switchBuilderTab('preview')">
+        <i class="fas fa-eye"></i> Preview
+      </button>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       MODALS
+  ============================================================ -->
+
+  <!-- Sign Up Modal -->
+  <div id="signup-modal" class="modal-overlay hidden" onclick="closeModalOnOverlay(event, 'signup-modal')">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="signup-title">
+      <button class="modal-close" onclick="closeModal('signup-modal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
+      <div class="modal-icon"><i class="fas fa-user-plus"></i></div>
+      <h2 id="signup-title">Create Account</h2>
+      <p class="modal-subtitle">Start building your professional resume today.</p>
+      <div class="form-group">
+        <label for="signup-name">Full Name</label>
+        <input type="text" id="signup-name" placeholder="John Doe" />
+      </div>
+      <div class="form-group">
+        <label for="signup-email">Email Address</label>
+        <input type="email" id="signup-email" placeholder="john@example.com" />
+      </div>
+      <div class="form-group">
+        <label for="signup-password">Password</label>
+        <div class="input-password-wrap">
+          <input type="password" id="signup-password" placeholder="At least 6 characters" />
+          <button type="button" class="toggle-password" onclick="togglePasswordVisibility('signup-password', this)"><i class="fas fa-eye"></i></button>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="handleSignUp()">
+        <i class="fas fa-rocket"></i> Create Account
+      </button>
+      <p class="modal-switch">Already have an account? <a href="#" onclick="switchModal('signup-modal','login-modal')">Log In</a></p>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal-overlay hidden" onclick="closeModalOnOverlay(event, 'login-modal')">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
+      <button class="modal-close" onclick="closeModal('login-modal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
+      <div class="modal-icon"><i class="fas fa-right-to-bracket"></i></div>
+      <h2 id="login-title">Welcome Back</h2>
+      <p class="modal-subtitle">Log in to continue building your resume.</p>
+      <div class="form-group">
+        <label for="login-email">Email Address</label>
+        <input type="email" id="login-email" placeholder="john@example.com" />
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <div class="input-password-wrap">
+          <input type="password" id="login-password" placeholder="Your password" />
+          <button type="button" class="toggle-password" onclick="togglePasswordVisibility('login-password', this)"><i class="fas fa-eye"></i></button>
+        </div>
+      </div>
+      <div class="modal-actions-row">
+        <label class="remember-me">
+          <input type="checkbox" id="login-remember" checked /> Remember me
+        </label>
+        <a href="#" class="forgot-link" onclick="switchModal('login-modal','forgot-modal')">Forgot password?</a>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="handleLogin()">
+        <i class="fas fa-right-to-bracket"></i> Log In
+      </button>
+      <p class="modal-switch">Don't have an account? <a href="#" onclick="switchModal('login-modal','signup-modal')">Sign Up</a></p>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div id="forgot-modal" class="modal-overlay hidden" onclick="closeModalOnOverlay(event, 'forgot-modal')">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="forgot-title">
+      <button class="modal-close" onclick="closeModal('forgot-modal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
+      <div class="modal-icon"><i class="fas fa-key"></i></div>
+      <h2 id="forgot-title">Reset Password</h2>
+      <p class="modal-subtitle">Enter your email and we'll send you a reset link.</p>
+      <div class="form-group">
+        <label for="forgot-email">Email Address</label>
+        <input type="email" id="forgot-email" placeholder="john@example.com" />
+      </div>
+      <button class="btn btn-primary btn-full" onclick="handleForgotPassword()">
+        <i class="fas fa-paper-plane"></i> Send Reset Link
+      </button>
+      <p class="modal-switch"><a href="#" onclick="switchModal('forgot-modal','login-modal')"><i class="fas fa-arrow-left"></i> Back to Login</a></p>
+    </div>
+  </div>
+
+  <!-- Validation Modal -->
+  <div id="validate-modal" class="modal-overlay hidden" onclick="closeModalOnOverlay(event, 'validate-modal')">
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="validate-title">
+      <button class="modal-close" onclick="closeModal('validate-modal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
+      <div class="modal-icon"><i class="fas fa-clipboard-check"></i></div>
+      <h2 id="validate-title">ATS Validation Report</h2>
+      <div id="validation-results"></div>
+      <button class="btn btn-primary btn-full mt" onclick="closeModal('validate-modal')">Got it!</button>
+    </div>
+  </div>
+
+  <!-- Confirm Clear Modal -->
+  <div id="confirm-modal" class="modal-overlay hidden" onclick="closeModalOnOverlay(event, 'confirm-modal')">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="modal-icon danger"><i class="fas fa-triangle-exclamation"></i></div>
+      <h2 id="confirm-title">Clear All Data?</h2>
+      <p class="modal-subtitle">This will permanently erase all your resume data. This cannot be undone.</p>
+      <div class="modal-btn-row">
+        <button class="btn btn-ghost" onclick="closeModal('confirm-modal')">Cancel</button>
+        <button class="btn btn-danger" onclick="clearAllData()">Yes, Clear Everything</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Verification Banner -->
+  <div id="verify-banner" class="verify-banner hidden">
+    <i class="fas fa-envelope"></i>
+    <span>Please verify your email address. <a href="#" onclick="resendVerificationEmail()">Resend email</a></span>
+    <button onclick="dismissVerifyBanner()" aria-label="Dismiss"><i class="fas fa-xmark"></i></button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
