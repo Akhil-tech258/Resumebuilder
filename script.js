@@ -17,14 +17,18 @@
    6. Enable Storage
    7. Deploy with: firebase deploy
    ─────────────────────────────────────────────────────────── */
-const FIREBASE_CONFIG = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD9QTzXdIch7njqV3jjWFe4UMhN_POr57w",
+  authDomain: "resum-1da6e.firebaseapp.com",
+  projectId: "resum-1da6e",
+  storageBucket: "resum-1da6e.firebasestorage.app",
+  messagingSenderId: "579784313367",
+  appId: "1:579784313367:web:cb203cb34145a8431cea52"
 };
+
+const app = initializeApp(firebaseConfig);
 
 /* ── 2. APP STATE ──────────────────────────────────────────
    Central state object. All resume data lives here.
